@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="theme-color" content="#087bb8">
+  <meta name="description" content="2枚のカードを選び、あわせて10をつくる学習ゲームです。">
+  <title>10をつくろう！</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%230a8fd3'/%3E%3Ccircle cx='32' cy='32' r='23' fill='%230b75bd' stroke='%23a8e7ff' stroke-width='3'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-family='Arial' font-size='32' font-weight='700' fill='white'%3E10%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ocean-deep: #055b91;
+      --ocean: #0a8fd3;
+      --ocean-light: #dff7ff;
+      --ink: #12324a;
+      --card: #087bc3;
+      --yellow: #ffd84d;
+      --coral: #ff6868;
+      --green: #38bf7b;
+      --shadow: 0 9px 0 rgba(0, 72, 120, .28), 0 12px 24px rgba(0, 58, 98, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255,255,255,.42) 0 5px, transparent 6px),
+        radial-gradient(circle at 84% 22%, rgba(255,255,255,.33) 0 8px, transparent 9px),
+        linear-gradient(180deg, #b9efff 0%, #eafcff 44%, #cbf2fb 100%);
+      padding: max(8px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    }
+
+    button, select { font: inherit; }
+
+    button { touch-action: manipulation; }
+
+    .app {
+      width: min(100%, 1420px);
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .small-action {
+      border: 2px solid #77cde9;
+      border-radius: 999px;
+      padding: 9px 14px;
+      color: #075f96;
+      font-weight: 800;
+      background: rgba(255,255,255,.86);
+      cursor: pointer;
+    }
+
+    .score-strip {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: stretch;
+      margin-bottom: 12px;
+    }
+
+    .score-box, .timer-box {
+      min-width: 0;
+      border: 3px solid rgba(255,255,255,.9);
+      border-radius: 18px;
+      box-shadow: 0 5px 14px rgba(0,76,120,.12);
+      background: rgba(255,255,255,.87);
+      text-align: center;
+      padding: 8px 10px;
+    }
+
+    .score-box.player { border-color: #58d99a; }
+    .score-box.rival { border-color: #ff9d9d; }
+
+    .score-label {
+      display: block;
+      font-size: .83rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .rival-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .score-rival-icon {
+      width: 34px;
+      height: 34px;
+      margin: -6px 0 -5px;
+      object-fit: contain;
+    }
+
+    .score-value {
+      display: block;
+      font-size: clamp(1.45rem, 5vw, 2rem);
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .timer-box {
+      min-width: 78px;
+      display: grid;
+      place-content: center;
+      border-color: #93d9f0;
+    }
+
+    #timer {
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      font-size: 1.15rem;
+    }
+
+    .game-shell {
+      position: relative;
+      overflow: hidden;
+      border: 4px solid rgba(255,255,255,.9);
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 8% 16%, rgba(255,255,255,.20) 0 9px, transparent 10px),
+        radial-gradient(circle at 94% 82%, rgba(255,255,255,.15) 0 14px, transparent 15px),
+        linear-gradient(180deg, #31b4df 0%, #0c78ba 100%);
+      box-shadow: 0 16px 38px rgba(0, 76, 120, .23);
+      padding: clamp(10px, 1.6vw, 18px);
+    }
+
+    .rival-line {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      color: white;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .rival-message {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 14px;
+      border-radius: 14px;
+      background: rgba(3,74,117,.7);
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .board {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      min-height: 0;
+      padding: 7px 3px;
+    }
+
+    .board[data-count="10"] { max-width: 870px; margin-inline: auto; }
+    .board[data-count="10"] .number-card { flex-basis: calc(20% - 9.6px); }
+    .board[data-count="20"] .number-card { flex-basis: calc(12.5% - 10.5px); }
+    .board[data-count="30"] .number-card { flex-basis: calc(10% - 10.8px); }
+
+    .number-card {
+      position: relative;
+      flex: 0 0 auto;
+      max-width: 145px;
+      width: 100%;
+      aspect-ratio: 1;
+      border: 4px solid rgba(255,255,255,.72);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 28% 24%, rgba(255,255,255,.32) 0 8%, transparent 9%),
+        radial-gradient(circle at 73% 70%, rgba(255,255,255,.16) 0 12%, transparent 13%),
+        linear-gradient(145deg, #1aa7ed, #0562ad 72%);
+      color: white;
+      box-shadow: var(--shadow);
+      font-size: clamp(1.75rem, 3.6vw, 3.35rem);
+      font-family: "Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", sans-serif;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      transition: transform .12s ease, filter .12s ease, opacity .25s ease;
+      text-shadow: 0 3px 0 rgba(0,67,121,.35);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .number-card::after {
+      content: "";
+      position: absolute;
+      inset: 7%;
+      border: 2px solid rgba(255,255,255,.14);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .number-card:hover:not(:disabled),
+    .number-card:focus-visible:not(:disabled) { transform: translateY(-4px); filter: brightness(1.08); }
+
+    .number-card.selected {
+      transform: translateY(-6px) scale(1.07);
+      border-color: var(--yellow);
+      box-shadow: 0 0 0 5px rgba(255,216,77,.35), var(--shadow);
+    }
+
+    .number-card.matched {
+      pointer-events: none;
+      animation: popAway .42s ease forwards;
+    }
+
+    .number-card.stolen {
+      pointer-events: none;
+      animation: stealAway .5s ease forwards;
+    }
+
+    .number-card.rival-first,
+    .number-card.rival-picked {
+      background:
+        radial-gradient(circle at 28% 24%, rgba(255,255,255,.34) 0 8%, transparent 9%),
+        radial-gradient(circle at 73% 70%, rgba(255,255,255,.18) 0 12%, transparent 13%),
+        linear-gradient(145deg, #ff8a66, #d84055 72%);
+      border-color: #fff2a8;
+      box-shadow: 0 0 0 6px rgba(255, 216, 77, .48), var(--shadow);
+      animation: rivalPickPulse .42s ease-in-out infinite alternate;
+    }
+
+    .number-card.rival-first::before {
+      content: "1まいめ";
+      position: absolute;
+      left: 50%;
+      top: -11px;
+      z-index: 2;
+      transform: translateX(-50%);
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #8f2639;
+      background: #fff7b8;
+      border: 2px solid white;
+      font-size: clamp(.62rem, 2.3vw, .78rem);
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+      text-shadow: none;
+    }
+
+    .tacomaru-badge {
+      position: absolute;
+      top: -18%;
+      right: -17%;
+      z-index: 4;
+      width: 42%;
+      min-width: 34px;
+      max-width: 50px;
+      aspect-ratio: 1;
+      padding: 2px;
+      border: 3px solid white;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 4px 9px rgba(0, 45, 80, .32);
+      object-fit: contain;
+      opacity: 0;
+      transform: scale(.55) rotate(12deg);
+      transition: opacity .16s ease, transform .16s ease;
+      pointer-events: none;
+    }
+
+    .number-card.rival-first .tacomaru-badge,
+    .number-card.rival-picked .tacomaru-badge {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+
+    @media (min-width: 861px) and (max-height: 800px) {
+      .board[data-count="20"] .number-card {
+        flex-basis: calc(10% - 10.8px);
+        max-width: 130px;
+      }
+    }
+
+    .number-card:disabled:not(.matched):not(.stolen) { cursor: default; }
+
+    @keyframes popAway {
+      45% { transform: scale(1.22) rotate(8deg); filter: brightness(1.25); }
+      100% { transform: scale(.2); opacity: 0; }
+    }
+
+    @keyframes stealAway {
+      25% { transform: scale(1.08); border-color: #ffb3b3; }
+      100% { transform: translate(var(--steal-x, 0), var(--steal-y, -60px)) scale(.16) rotate(20deg); opacity: 0; }
+    }
+
+    @keyframes rivalPickPulse {
+      from { transform: scale(.96); filter: brightness(1); }
+      to { transform: scale(1.06); filter: brightness(1.2); }
+    }
+
+    .equation-panel {
+      margin-top: 16px;
+      padding: 13px 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,.94);
+      border: 3px solid #97e5f7;
+      text-align: center;
+      box-shadow: 0 6px 0 rgba(0,73,117,.18);
+    }
+
+    .board-equation-panel {
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .board-equation-panel .equation-label {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+
+    .board-equation-panel .equation {
+      min-height: 42px;
+      font-size: clamp(1.45rem, 3vw, 2.25rem);
+    }
+
+    .equation-label {
+      margin: 0 0 5px;
+      color: #17698d;
+      font-size: .85rem;
+      font-weight: 800;
+    }
+
+    .equation {
+      min-height: 48px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(6px, 2vw, 12px);
+      font-size: clamp(1.65rem, 6vw, 2.7rem);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .number-chip {
+      min-width: 1.55em;
+      min-height: 1.55em;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: var(--card);
+      border: 3px solid #85dfff;
+      box-shadow: 0 4px 0 rgba(0,68,115,.25);
+    }
+
+    .placeholder-chip {
+      min-width: 1.55em;
+      color: #77a9bc;
+    }
+
+    .equation.good { color: #108b54; }
+    .equation.bad { color: #d94848; }
+
+    .setup, .result, .countdown {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(2, 64, 105, .76);
+      backdrop-filter: blur(5px);
+    }
+
+    .dialog {
+      width: min(100%, 500px);
+      max-height: 94%;
+      overflow: auto;
+      padding: clamp(20px, 5vw, 30px);
+      border-radius: 26px;
+      background: white;
+      border: 4px solid #b9efff;
+      box-shadow: 0 18px 50px rgba(0,39,68,.28);
+      text-align: center;
+    }
+
+    .dialog h2 {
+      margin: 0 0 8px;
+      color: #066ca7;
+      font-size: clamp(1.65rem, 6vw, 2.3rem);
+    }
+
+    .dialog p {
+      margin: 8px 0 18px;
+      line-height: 1.6;
+      font-weight: 650;
+    }
+
+    .level-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0 8px;
+      font-weight: 900;
+    }
+
+    #levelSelect,
+    #cardCountSelect {
+      min-width: 100px;
+      border: 3px solid #8adcf4;
+      border-radius: 14px;
+      padding: 10px 13px;
+      color: #075f96;
+      background: #f4fdff;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .level-row + .level-row { margin-top: 10px; }
+
+    .level-note {
+      min-height: 1.5em;
+      margin: 0 0 18px !important;
+      color: #52798c;
+      font-size: .92rem;
+    }
+
+    .primary-button {
+      width: 100%;
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 18px;
+      color: #173647;
+      background: linear-gradient(#ffe87b, #ffc931);
+      box-shadow: 0 6px 0 #d29a00;
+      font-size: 1.15rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .primary-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #d29a00; }
+
+    .howto {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: #eafaff;
+      text-align: left;
+      color: #285d77;
+      font-size: .92rem;
+      line-height: 1.65;
+    }
+
+    .countdown {
+      color: white;
+      font-size: clamp(5rem, 24vw, 10rem);
+      font-weight: 900;
+      text-shadow: 0 8px 0 rgba(0,50,90,.3);
+    }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .result-stat {
+      padding: 14px 10px;
+      border-radius: 16px;
+      background: #eafaff;
+      font-weight: 800;
+    }
+
+    .result-stat strong { display: block; font-size: 1.8rem; color: #076ea9; }
+
+    [hidden] { display: none !important; }
+
+    .live-status {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 860px) {
+      .board {
+        max-width: none !important;
+        gap: 7px;
+        padding-top: 10px;
+      }
+
+      .board[data-count] .number-card {
+        flex-basis: calc(20% - 5.6px);
+        max-width: 145px;
+      }
+
+      .number-card { font-size: clamp(1.75rem, 7.5vw, 3.5rem); }
+    }
+
+    @media (max-width: 540px) {
+      body { padding-left: 8px; padding-right: 8px; }
+      .topbar { gap: 6px; padding: 0 4px; }
+      .board-equation-panel { gap: 5px; padding: 5px 7px; border-radius: 16px; }
+      .board-equation-panel .equation-label { font-size: .68rem; }
+      .board-equation-panel .equation { min-height: 36px; gap: 4px; font-size: clamp(1.1rem, 5.2vw, 1.65rem); }
+      .board-equation-panel .number-chip { border-width: 2px; box-shadow: 0 3px 0 rgba(0,68,115,.25); }
+      .score-strip { gap: 6px; }
+      .score-box, .timer-box { padding: 7px 5px; border-radius: 14px; }
+      .score-label { font-size: .72rem; }
+      .score-rival-icon { width: 28px; height: 28px; margin: -4px 0; }
+      .timer-box { min-width: 65px; }
+      #timer { font-size: 1rem; }
+      .game-shell { border-radius: 22px; border-width: 3px; }
+      .rival-line { margin-bottom: 8px; }
+      .rival-message { font-size: .84rem; padding: 8px 10px; }
+      .board { gap: 7px; min-height: 0; }
+      .number-card { border-width: 3px; box-shadow: 0 5px 0 rgba(0,72,120,.28), 0 8px 14px rgba(0,58,98,.14); }
+      .equation-panel { margin-top: 12px; padding: 9px 8px; }
+    }
+
+    @media (max-width: 360px) {
+      .small-action { padding: 7px 10px; font-size: .8rem; }
+      .game-shell { padding: 9px; }
+      .board { gap: 5px; min-height: 0; }
+      .board[data-count] .number-card { flex-basis: calc(20% - 4px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <button id="backToSetup" class="small-action" type="button">レベルをかえる</button>
+    </div>
+
+    <section class="score-strip" aria-label="とくてんとタイム">
+      <div class="score-box player">
+        <span class="score-label">あなた</span>
+        <span id="playerScore" class="score-value">0</span>
+      </div>
+      <div class="timer-box"><span id="timer">0:00</span></div>
+      <div class="score-box rival">
+        <span class="score-label rival-label"><img class="score-rival-icon" src="tacomaru.png" alt="">タコまる</span>
+        <span id="rivalScore" class="score-value">0</span>
+      </div>
+    </section>
+
+    <section class="game-shell" aria-label="10をつくるゲーム">
+      <div class="equation-panel board-equation-panel">
+        <p class="equation-label">えらんだカード</p>
+        <div id="equation" class="equation" aria-live="polite">
+          <span class="placeholder-chip">○</span><span>＋</span><span class="placeholder-chip">○</span><span>＝10</span>
+        </div>
+      </div>
+
+      <div class="rival-line">
+        <div id="rivalMessage" class="rival-message">レベルとカードのまいすうをえらんで、スタートしよう！</div>
+      </div>
+
+      <div id="board" class="board" aria-label="数字カード"></div>
+
+      <div id="setup" class="setup">
+        <div class="dialog">
+          <h2>10をつくろう！</h2>
+          <p>2まいのカードをタッチして、<br><strong>あわせて10</strong>をつくろう。</p>
+          <div class="level-row">
+            <label for="levelSelect">タコまるのレベル</label>
+            <select id="levelSelect">
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+              <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+          <div class="level-row">
+            <label for="cardCountSelect">カードのまいすう</label>
+            <select id="cardCountSelect">
+              <option value="10">10まい</option>
+              <option value="20" selected>20まい</option>
+              <option value="30">30まい</option>
+            </select>
+          </div>
+          <p id="levelNote" class="level-note"></p>
+          <button id="startButton" class="primary-button" type="button">ゲームスタート</button>
+          <div class="howto">
+            <strong>あそびかた</strong><br>
+            ① 数字を1まいタッチ<br>
+            ② あわせて10になる数字をタッチ<br>
+            ③ タコまるより多く、10の組を見つけよう！
+          </div>
+        </div>
+      </div>
+
+      <div id="countdown" class="countdown" hidden aria-live="assertive">3</div>
+
+      <div id="result" class="result" hidden>
+        <div class="dialog">
+          <h2 id="resultTitle">ゲーム終了！</h2>
+          <p id="resultMessage"></p>
+          <div class="result-stats">
+            <div class="result-stat">あなた<strong id="resultPlayer">0組</strong></div>
+            <div class="result-stat">タコまる<strong id="resultRival">0組</strong></div>
+          </div>
+          <button id="replayButton" class="primary-button" type="button">もういちど</button>
+        </div>
+      </div>
+
+      <div id="liveStatus" class="live-status" aria-live="assertive"></div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const COMPLEMENT_PAIRS = [[1,9], [2,8], [3,7], [4,6], [5,5]];
+      const SPEEDS = [6200, 5550, 4900, 4250, 3650, 3100, 2600, 2150, 1750, 1400];
+      const LEVEL_TEXT = [
+        'とてもゆっくり。はじめての人におすすめ',
+        'ゆっくり考えられます',
+        '少しずつテンポアップ',
+        'ふつうより少しゆっくり',
+        'ふつうの速さ',
+        'ちょっとすばやい',
+        'かなりすばやい',
+        '気をぬくと先に取られます',
+        'とても速い！',
+        'さいきょうのタコまる！'
+      ];
+
+      const els = {
+        board: document.querySelector('#board'),
+        equation: document.querySelector('#equation'),
+        playerScore: document.querySelector('#playerScore'),
+        rivalScore: document.querySelector('#rivalScore'),
+        timer: document.querySelector('#timer'),
+        setup: document.querySelector('#setup'),
+        result: document.querySelector('#result'),
+        countdown: document.querySelector('#countdown'),
+        startButton: document.querySelector('#startButton'),
+        replayButton: document.querySelector('#replayButton'),
+        backToSetup: document.querySelector('#backToSetup'),
+        levelSelect: document.querySelector('#levelSelect'),
+        cardCountSelect: document.querySelector('#cardCountSelect'),
+        levelNote: document.querySelector('#levelNote'),
+        rivalMessage: document.querySelector('#rivalMessage'),
+        resultTitle: document.querySelector('#resultTitle'),
+        resultMessage: document.querySelector('#resultMessage'),
+        resultPlayer: document.querySelector('#resultPlayer'),
+        resultRival: document.querySelector('#resultRival'),
+        liveStatus: document.querySelector('#liveStatus')
+      };
+
+      let cards = [];
+      let selectedIds = [];
+      let playerScore = 0;
+      let rivalScore = 0;
+      let gameActive = false;
+      let inputLocked = false;
+      let startTime = 0;
+      let timerHandle = null;
+      let rivalHandle = null;
+      let rivalToken = 0;
+      let sessionToken = 0;
+      let rivalAnimating = false;
+      let audioContext = null;
+
+      const shuffle = (items) => {
+        const copy = [...items];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      };
+
+      function getAudioContext() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        if (!audioContext) audioContext = new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+        return audioContext;
+      }
+
+      function playTone(context, frequency, start, duration, type, volume, endFrequency = frequency) {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        if (endFrequency !== frequency) {
+          oscillator.frequency.exponentialRampToValueAtTime(endFrequency, start + duration);
+        }
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.02);
+      }
+
+      function playSelectSound() {
+        const context = getAudioContext();
+        if (!context) return;
+        const now = context.currentTime + 0.01;
+        playTone(context, 520, now, 0.09, 'triangle', 0.07, 680);
+      }
+
+      function playCorrectSound() {
+        const context = getAudioContext();
+        if (!context) return;
+        const now = context.currentTime + 0.01;
+        playTone(context, 784, now, 0.18, 'sine', 0.12);
+        playTone(context, 988, now + 0.17, 0.32, 'sine', 0.13);
+        playTone(context, 1568, now, 0.15, 'sine', 0.035);
+        playTone(context, 1976, now + 0.17, 0.26, 'sine', 0.035);
+      }
+
+      function playWrongSound() {
+        const context = getAudioContext();
+        if (!context) return;
+        const now = context.currentTime + 0.01;
+        playTone(context, 180, now, 0.18, 'square', 0.055, 135);
+        playTone(context, 160, now + 0.2, 0.3, 'square', 0.065, 105);
+      }
+
+      function makeCardValues(count) {
+        const pairCount = count / 2;
+        const pairs = [];
+        while (pairs.length < pairCount) {
+          shuffle(COMPLEMENT_PAIRS).forEach((pair) => {
+            if (pairs.length < pairCount) pairs.push(pair);
+          });
+        }
+        return shuffle(pairs.flat());
+      }
+
+      function setSetupNote() {
+        const level = Number(els.levelSelect.value);
+        const count = Number(els.cardCountSelect.value);
+        els.levelNote.textContent = `${LEVEL_TEXT[level - 1]}／${count}まい（${count / 2}くみ）`;
+      }
+
+      function renderBoard() {
+        els.board.innerHTML = '';
+        els.board.dataset.count = String(cards.length);
+        cards.forEach((card) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'number-card';
+          button.dataset.id = card.id;
+          button.textContent = card.value;
+          button.setAttribute('aria-label', `${card.value}のカード`);
+          const badge = document.createElement('img');
+          badge.className = 'tacomaru-badge';
+          badge.src = 'tacomaru.png';
+          badge.alt = '';
+          badge.setAttribute('aria-hidden', 'true');
+          button.appendChild(badge);
+          button.addEventListener('click', () => chooseCard(card.id));
+          els.board.appendChild(button);
+        });
+      }
+
+      function cardElement(id) {
+        return els.board.querySelector(`[data-id="${id}"]`);
+      }
+
+      function renderEquation(values = [], state = '') {
+        els.equation.className = `equation${state ? ` ${state}` : ''}`;
+        const first = values[0] == null
+          ? '<span class="placeholder-chip">○</span>'
+          : `<span class="number-chip">${values[0]}</span>`;
+        const second = values[1] == null
+          ? '<span class="placeholder-chip">○</span>'
+          : `<span class="number-chip">${values[1]}</span>`;
+        const total = values.length === 2 ? values[0] + values[1] : 10;
+        els.equation.innerHTML = `${first}<span>＋</span>${second}<span>＝${total}</span>`;
+      }
+
+      function updateScores() {
+        els.playerScore.textContent = playerScore;
+        els.rivalScore.textContent = rivalScore;
+      }
+
+      function announce(message) {
+        els.liveStatus.textContent = '';
+        window.setTimeout(() => { els.liveStatus.textContent = message; }, 30);
+      }
+
+      function clearSelection() {
+        selectedIds.forEach((id) => cardElement(id)?.classList.remove('selected'));
+        selectedIds = [];
+      }
+
+      function chooseCard(id) {
+        if (!gameActive || inputLocked) return;
+        const card = cards.find((item) => item.id === id);
+        if (!card || card.taken) return;
+
+        if (selectedIds[0] === id) {
+          cardElement(id)?.classList.remove('selected');
+          selectedIds = [];
+          renderEquation();
+          return;
+        }
+
+        selectedIds.push(id);
+        cardElement(id)?.classList.add('selected');
+        const values = selectedIds.map((selectedId) => cards.find((item) => item.id === selectedId).value);
+        renderEquation(values);
+
+        if (selectedIds.length < 2) {
+          playSelectSound();
+          els.rivalMessage.textContent = `${values[0]}といくつで10になる？`;
+          return;
+        }
+
+        inputLocked = true;
+        if (values[0] + values[1] === 10) {
+          playCorrectSound();
+          renderEquation(values, 'good');
+          els.rivalMessage.textContent = `せいかい！ ${values[0]}＋${values[1]}＝10`;
+          announce(`${values[0]}たす${values[1]}で10。せいかいです。`);
+          takeSelectedPair();
+        } else {
+          playWrongSound();
+          renderEquation(values, 'bad');
+          els.rivalMessage.textContent = `${values[0]}＋${values[1]}＝${values[0] + values[1]}。10じゃないよ`;
+          announce(`${values[0]}たす${values[1]}は${values[0] + values[1]}です。`);
+          window.setTimeout(() => {
+            clearSelection();
+            renderEquation();
+            els.rivalMessage.textContent = 'もういちど、10になる組をさがそう！';
+            inputLocked = false;
+          }, 720);
+        }
+      }
+
+      function takeSelectedPair() {
+        const ids = [...selectedIds];
+        ids.forEach((id) => {
+          const card = cards.find((item) => item.id === id);
+          card.taken = true;
+          card.owner = 'player';
+          const el = cardElement(id);
+          el?.classList.remove('selected');
+          el?.classList.add('matched');
+          if (el) el.disabled = true;
+        });
+        selectedIds = [];
+        playerScore += 1;
+        updateScores();
+        window.setTimeout(() => {
+          renderEquation();
+          inputLocked = false;
+          checkEnd();
+        }, 430);
+      }
+
+      function availablePairs() {
+        const available = cards.filter((card) => !card.taken && !selectedIds.includes(card.id));
+        const pairs = [];
+        for (let i = 0; i < available.length; i++) {
+          for (let j = i + 1; j < available.length; j++) {
+            if (available[i].value + available[j].value === 10) {
+              pairs.push([available[i], available[j]]);
+            }
+          }
+        }
+        return pairs;
+      }
+
+      function scheduleRival() {
+        window.clearTimeout(rivalHandle);
+        if (!gameActive) return;
+        const level = Number(els.levelSelect.value);
+        const base = SPEEDS[level - 1];
+        const variation = base * (Math.random() * .28 - .12);
+        const token = ++rivalToken;
+        rivalHandle = window.setTimeout(() => rivalMove(token), Math.max(850, base + variation));
+      }
+
+      function stopRivalTake() {
+        rivalAnimating = false;
+        els.board.querySelectorAll('.rival-first, .rival-picked').forEach((card) => {
+          card.classList.remove('rival-first', 'rival-picked');
+        });
+      }
+
+      async function playRivalTake(pair, activeSession) {
+        const targets = pair.map((card) => cardElement(card.id));
+        if (targets.some((target) => !target)) return false;
+
+        const level = Number(els.levelSelect.value);
+        const firstPause = Math.max(420, 820 - level * 40);
+        const pairPause = Math.max(260, 500 - level * 20);
+
+        targets[0].classList.add('rival-first');
+        targets[0].setAttribute('aria-label', `${pair[0].value}のカード。タコまるの1まい目`);
+        els.rivalMessage.textContent = `タコまるの1まい目は ${pair[0].value}！`;
+        announce(`タコまるが1まい目に${pair[0].value}を取りました。`);
+        await new Promise((resolve) => window.setTimeout(resolve, firstPause));
+
+        if (activeSession !== sessionToken) return false;
+
+        targets[0].classList.remove('rival-first');
+        targets[0].classList.add('rival-picked');
+        targets[1].classList.add('rival-picked');
+        targets[1].setAttribute('aria-label', `${pair[1].value}のカード。タコまるの2まい目`);
+        els.rivalMessage.textContent = `つぎに ${pair[1].value}！ ${pair[0].value}＋${pair[1].value}＝10`;
+        announce(`つぎに${pair[1].value}を取り、あわせて10になりました。`);
+        await new Promise((resolve) => window.setTimeout(resolve, pairPause));
+
+        if (activeSession !== sessionToken) return false;
+
+        targets.forEach((target) => {
+          target.classList.remove('rival-first', 'rival-picked');
+          target.classList.add('stolen');
+        });
+        return true;
+      }
+
+      async function rivalMove(token) {
+        if (!gameActive || token !== rivalToken) return;
+        if (rivalAnimating) {
+          scheduleRival();
+          return;
+        }
+        const pairs = availablePairs();
+        if (!pairs.length) {
+          scheduleRival();
+          return;
+        }
+
+        const pair = pairs[Math.floor(Math.random() * pairs.length)];
+        const activeSession = sessionToken;
+        rivalAnimating = true;
+        pair.forEach((card) => {
+          card.taken = true;
+          card.owner = 'rival';
+          const el = cardElement(card.id);
+          if (el) {
+            el.disabled = true;
+          }
+        });
+        const completed = await playRivalTake(pair, activeSession);
+        if (!completed || activeSession !== sessionToken) {
+          stopRivalTake();
+          return;
+        }
+        rivalScore += 1;
+        updateScores();
+        rivalAnimating = false;
+        scheduleRival();
+        checkEnd();
+      }
+
+      function checkEnd() {
+        if (!gameActive) return;
+        if (rivalAnimating) return;
+        const remaining = cards.filter((card) => !card.taken);
+        if (remaining.length === 0 || playerScore + rivalScore >= cards.length / 2) {
+          finishGame();
+        }
+      }
+
+      function formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        return `${minutes}:${seconds}`;
+      }
+
+      function startTimer() {
+        window.clearInterval(timerHandle);
+        startTime = Date.now();
+        els.timer.textContent = '0:00';
+        timerHandle = window.setInterval(() => {
+          els.timer.textContent = formatTime(Date.now() - startTime);
+        }, 250);
+      }
+
+      function finishGame() {
+        const finishedSession = sessionToken;
+        gameActive = false;
+        inputLocked = true;
+        rivalToken += 1;
+        window.clearTimeout(rivalHandle);
+        window.clearInterval(timerHandle);
+        stopRivalTake();
+
+        if (playerScore > rivalScore) {
+          els.resultTitle.textContent = 'あなたのかち！';
+          els.resultMessage.textContent = 'タコまるよりたくさん、10の組を見つけたね！';
+        } else if (playerScore < rivalScore) {
+          els.resultTitle.textContent = 'タコまるのかち';
+          els.resultMessage.textContent = 'つぎは、もっとはやく10の組を見つけよう！';
+        } else {
+          els.resultTitle.textContent = 'ひきわけ！';
+          els.resultMessage.textContent = 'ふたりとも、おなじ数だけ見つけました。';
+        }
+        els.resultPlayer.textContent = `${playerScore}組`;
+        els.resultRival.textContent = `${rivalScore}組`;
+        window.setTimeout(() => {
+          if (finishedSession === sessionToken) els.result.hidden = false;
+        }, 500);
+      }
+
+      function resetGame() {
+        sessionToken += 1;
+        rivalToken += 1;
+        window.clearTimeout(rivalHandle);
+        window.clearInterval(timerHandle);
+        stopRivalTake();
+        const count = Number(els.cardCountSelect.value);
+        cards = makeCardValues(count).map((value, index) => ({ id: `card-${Date.now()}-${index}`, value, taken: false, owner: null }));
+        selectedIds = [];
+        playerScore = 0;
+        rivalScore = 0;
+        gameActive = false;
+        inputLocked = true;
+        updateScores();
+        els.timer.textContent = '0:00';
+        renderEquation();
+        renderBoard();
+        els.rivalMessage.textContent = 'よういはいい？';
+        els.result.hidden = true;
+      }
+
+      async function runCountdown(activeSession) {
+        els.countdown.hidden = false;
+        for (const text of ['3', '2', '1', 'スタート！']) {
+          if (activeSession !== sessionToken) return;
+          els.countdown.textContent = text;
+          await new Promise((resolve) => window.setTimeout(resolve, text === 'スタート！' ? 600 : 700));
+        }
+        if (activeSession !== sessionToken) return;
+        els.countdown.hidden = true;
+        gameActive = true;
+        inputLocked = false;
+        els.rivalMessage.textContent = '10になる組を見つけよう！';
+        startTimer();
+        scheduleRival();
+        const first = els.board.querySelector('.number-card');
+        first?.focus({ preventScroll: true });
+      }
+
+      function startGame() {
+        resetGame();
+        els.setup.hidden = true;
+        runCountdown(sessionToken);
+      }
+
+      function showSetup() {
+        sessionToken += 1;
+        gameActive = false;
+        inputLocked = true;
+        rivalToken += 1;
+        window.clearTimeout(rivalHandle);
+        window.clearInterval(timerHandle);
+        stopRivalTake();
+        els.countdown.hidden = true;
+        els.result.hidden = true;
+        els.setup.hidden = false;
+        els.rivalMessage.textContent = 'レベルとカードのまいすうをえらんで、スタートしよう！';
+      }
+
+      els.levelSelect.addEventListener('change', setSetupNote);
+      els.cardCountSelect.addEventListener('change', setSetupNote);
+      els.startButton.addEventListener('click', startGame);
+      els.replayButton.addEventListener('click', startGame);
+      els.backToSetup.addEventListener('click', showSetup);
+
+      setSetupNote();
+      resetGame();
+      els.setup.hidden = false;
+    })();
+  </script>
+</body>
+</html>
