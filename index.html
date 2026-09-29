@@ -70,12 +70,13 @@
     .topbar {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: space-between;
       gap: 12px;
       margin-bottom: 10px;
     }
 
     .small-action {
+      flex: 0 0 auto;
       border: 2px solid #77cde9;
       border-radius: 999px;
       padding: 9px 14px;
@@ -169,14 +170,27 @@
       margin-bottom: 10px;
     }
 
+    .top-status-line {
+      flex: 1;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+
     .rival-message {
       width: 100%;
+      height: 44px;
       min-width: 0;
       padding: 9px 14px;
       border-radius: 14px;
       background: rgba(3,74,117,.7);
       line-height: 1.35;
       text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .board {
@@ -549,6 +563,7 @@
       #timer { font-size: 1rem; }
       .game-shell { border-radius: 22px; border-width: 3px; }
       .rival-line { margin-bottom: 8px; }
+      .top-status-line { margin-bottom: 0; }
       .rival-message { font-size: .84rem; padding: 8px 10px; }
       .board { gap: 7px; min-height: 0; }
       .number-card { border-width: 3px; box-shadow: 0 5px 0 rgba(0,72,120,.28), 0 8px 14px rgba(0,58,98,.14); }
@@ -570,6 +585,9 @@
 <body>
   <main class="app">
     <div class="topbar">
+      <div class="rival-line top-status-line">
+        <div id="rivalMessage" class="rival-message">レベルとカードのまいすうをえらんで、スタートしよう！</div>
+      </div>
       <button id="backToSetup" class="small-action" type="button">レベルをかえる</button>
     </div>
 
@@ -591,10 +609,6 @@
         <div id="equation" class="equation" aria-live="polite">
           <span class="placeholder-chip">○</span><span>＋</span><span class="placeholder-chip">○</span><span>＝10</span>
         </div>
-      </div>
-
-      <div class="rival-line">
-        <div id="rivalMessage" class="rival-message">レベルとカードのまいすうをえらんで、スタートしよう！</div>
       </div>
 
       <div id="board" class="board" aria-label="数字カード"></div>
