@@ -388,11 +388,17 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .number-chip {
+    .number-chip,
+    .placeholder-chip {
+      width: 1.55em;
+      height: 1.55em;
       min-width: 1.55em;
-      min-height: 1.55em;
+      flex: 0 0 1.55em;
       display: inline-grid;
       place-items: center;
+    }
+
+    .number-chip {
       border-radius: 50%;
       color: white;
       background: var(--card);
@@ -401,7 +407,6 @@
     }
 
     .placeholder-chip {
-      min-width: 1.55em;
       color: #77a9bc;
     }
 
@@ -443,6 +448,39 @@
       font-weight: 650;
     }
 
+    .setup {
+      padding: 8px;
+    }
+
+    .setup-dialog {
+      width: min(100%, 700px);
+      max-height: 100%;
+      overflow: hidden;
+      padding: clamp(14px, 3vw, 22px);
+    }
+
+    .setup-dialog h2 {
+      margin-bottom: 4px;
+    }
+
+    .setup-intro {
+      margin: 4px 0 10px !important;
+      line-height: 1.45 !important;
+    }
+
+    .setup-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 8px 0;
+    }
+
+    .setup-controls .level-row {
+      flex-direction: column;
+      gap: 6px;
+      margin: 0;
+    }
+
     .level-row {
       display: flex;
       align-items: center;
@@ -465,12 +503,37 @@
     }
 
     .level-row + .level-row { margin-top: 10px; }
+    .setup-controls .level-row + .level-row { margin-top: 0; }
 
     .level-note {
       min-height: 1.5em;
       margin: 0 0 18px !important;
       color: #52798c;
       font-size: .92rem;
+    }
+
+    .setup-dialog .level-note {
+      margin: 4px 0 10px !important;
+    }
+
+    .result {
+      padding: 8px;
+    }
+
+    .result-dialog {
+      width: min(100%, 700px);
+      max-height: 100%;
+      overflow: hidden;
+      padding: clamp(14px, 3vw, 22px);
+    }
+
+    .result-dialog h2 {
+      margin-bottom: 4px;
+    }
+
+    .result-dialog > p {
+      margin: 4px 0 10px;
+      line-height: 1.45;
     }
 
     .primary-button {
@@ -488,17 +551,6 @@
 
     .primary-button:active { transform: translateY(4px); box-shadow: 0 2px 0 #d29a00; }
 
-    .howto {
-      margin-top: 18px;
-      padding: 12px 14px;
-      border-radius: 16px;
-      background: #eafaff;
-      text-align: left;
-      color: #285d77;
-      font-size: .92rem;
-      line-height: 1.65;
-    }
-
     .countdown {
       color: white;
       font-size: clamp(5rem, 24vw, 10rem);
@@ -510,7 +562,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin: 18px 0;
+      margin: 10px 0 14px;
     }
 
     .result-stat {
@@ -577,6 +629,23 @@
       .board[data-count] .number-card { flex-basis: calc(20% - 4px); }
     }
 
+    @media (max-height: 480px) {
+      .setup-dialog { padding: 9px 18px; }
+      .setup-dialog h2 { font-size: 1.45rem; line-height: 1.1; }
+      .setup-intro { margin: 2px 0 6px !important; font-size: .92rem; }
+      .setup-controls { margin: 5px 0; }
+      #levelSelect, #cardCountSelect { padding: 7px 11px; }
+      .setup-dialog .level-note { margin: 2px 0 7px !important; font-size: .82rem; }
+      .setup-dialog .primary-button { padding: 10px 16px; }
+      .result-dialog { padding: 9px 18px; }
+      .result-dialog h2 { font-size: 1.75rem; line-height: 1.1; }
+      .result-dialog > p { margin: 3px 0 7px; font-size: .9rem; line-height: 1.35; }
+      .result-dialog .result-stats { margin: 7px 0 10px; }
+      .result-dialog .result-stat { padding: 8px; }
+      .result-dialog .result-stat strong { font-size: 1.5rem; }
+      .result-dialog .primary-button { padding: 10px 16px; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
@@ -614,41 +683,37 @@
       <div id="board" class="board" aria-label="数字カード"></div>
 
       <div id="setup" class="setup">
-        <div class="dialog">
+        <div class="dialog setup-dialog">
           <h2>10をつくろう！</h2>
-          <p>2まいのカードをタッチして、<br><strong>あわせて10</strong>をつくろう。</p>
-          <div class="level-row">
-            <label for="levelSelect">タコまるのレベル</label>
-            <select id="levelSelect">
-              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-              <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
-              <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-              <option value="10">10</option>
-            </select>
-          </div>
-          <div class="level-row">
-            <label for="cardCountSelect">カードのまいすう</label>
-            <select id="cardCountSelect">
-              <option value="10">10まい</option>
-              <option value="20" selected>20まい</option>
-              <option value="30">30まい</option>
-            </select>
+          <p class="setup-intro">2まいのカードをタッチして、<br><strong>あわせて10</strong>をつくろう。</p>
+          <div class="setup-controls">
+            <div class="level-row">
+              <label for="levelSelect">タコまるのレベル</label>
+              <select id="levelSelect">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+            <div class="level-row">
+              <label for="cardCountSelect">カードのまいすう</label>
+              <select id="cardCountSelect">
+                <option value="10">10まい</option>
+                <option value="20" selected>20まい</option>
+                <option value="30">30まい</option>
+              </select>
+            </div>
           </div>
           <p id="levelNote" class="level-note"></p>
           <button id="startButton" class="primary-button" type="button">ゲームスタート</button>
-          <div class="howto">
-            <strong>あそびかた</strong><br>
-            ① 数字を1まいタッチ<br>
-            ② あわせて10になる数字をタッチ<br>
-            ③ タコまるより多く、10の組を見つけよう！
-          </div>
         </div>
       </div>
 
       <div id="countdown" class="countdown" hidden aria-live="assertive">3</div>
 
       <div id="result" class="result" hidden>
-        <div class="dialog">
+        <div class="dialog result-dialog">
           <h2 id="resultTitle">ゲーム終了！</h2>
           <p id="resultMessage"></p>
           <div class="result-stats">
