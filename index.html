@@ -413,7 +413,7 @@
     .equation.good { color: #108b54; }
     .equation.bad { color: #d94848; }
 
-    .setup, .result, .countdown {
+    .setup, .result, .countdown, .portrait-guide {
       position: absolute;
       inset: 0;
       z-index: 10;
@@ -450,6 +450,39 @@
 
     .setup {
       padding: 8px;
+    }
+
+    .portrait-guide {
+      padding: 12px;
+      z-index: 12;
+    }
+
+    .portrait-guide-dialog {
+      width: min(100%, 520px);
+      overflow: hidden;
+    }
+
+    .portrait-guide-icon {
+      display: block;
+      margin: 4px auto 10px;
+      font-size: clamp(3.5rem, 13vw, 5.5rem);
+      line-height: 1;
+    }
+
+    .portrait-guide-dialog p {
+      margin-bottom: 14px;
+    }
+
+    .secondary-button {
+      width: 100%;
+      border: 3px solid #8adcf4;
+      border-radius: 16px;
+      padding: 11px 16px;
+      color: #075f96;
+      background: #f4fdff;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
     }
 
     .setup-dialog {
@@ -712,6 +745,15 @@
 
       <div id="countdown" class="countdown" hidden aria-live="assertive">3</div>
 
+      <div id="portraitGuide" class="portrait-guide" hidden role="dialog" aria-modal="true" aria-labelledby="portraitGuideTitle">
+        <div class="dialog portrait-guide-dialog">
+          <span class="portrait-guide-icon" aria-hidden="true">📱</span>
+          <h2 id="portraitGuideTitle">縦画面にしてください</h2>
+          <p>30まいのときは、画面を縦にするとゲームがスタートします。</p>
+          <button id="portraitBackButton" class="secondary-button" type="button">戻る</button>
+        </div>
+      </div>
+
       <div id="result" class="result" hidden>
         <div class="dialog result-dialog">
           <h2 id="resultTitle">ゲーム終了！</h2>
@@ -756,6 +798,8 @@
         setup: document.querySelector('#setup'),
         result: document.querySelector('#result'),
         countdown: document.querySelector('#countdown'),
+        portraitGuide: document.querySelector('#portraitGuide'),
+        portraitBackButton: document.querySelector('#portraitBackButton'),
         startButton: document.querySelector('#startButton'),
         replayButton: document.querySelector('#replayButton'),
         backToSetup: document.querySelector('#backToSetup'),
@@ -783,6 +827,7 @@
       let sessionToken = 0;
       let rivalAnimating = false;
       let audioContext = null;
+      let waitingForPortrait = false;
 
       const shuffle = (items) => {
         const copy = [...items];
@@ -1165,11 +1210,37 @@
         first?.focus({ preventScroll: true });
       }
 
-      function startGame() {
+      function beginGame() {
+        waitingForPortrait = false;
+        els.portraitGuide.hidden = true;
         document.body.classList.add('screen-locked');
         resetGame();
         els.setup.hidden = true;
         runCountdown(sessionToken);
+      }
+
+      function isPortrait() {
+        return window.matchMedia('(orientation: portrait)').matches;
+      }
+
+      function startGame() {
+        const needsPortrait = Number(els.cardCountSelect.value) === 30;
+        if (needsPortrait && !isPortrait()) {
+          waitingForPortrait = true;
+          document.body.classList.add('screen-locked');
+          els.setup.hidden = true;
+          els.result.hidden = true;
+          els.portraitGuide.hidden = false;
+          els.portraitBackButton.focus({ preventScroll: true });
+          return;
+        }
+        beginGame();
+      }
+
+      function handleOrientationChange() {
+        if (waitingForPortrait && Number(els.cardCountSelect.value) === 30 && isPortrait()) {
+          beginGame();
+        }
       }
 
       function showSetup() {
@@ -1181,7 +1252,9 @@
         window.clearTimeout(rivalHandle);
         window.clearInterval(timerHandle);
         stopRivalTake();
+        waitingForPortrait = false;
         els.countdown.hidden = true;
+        els.portraitGuide.hidden = true;
         els.result.hidden = true;
         els.setup.hidden = false;
         els.rivalMessage.textContent = 'レベルとカードのまいすうをえらんで、スタートしよう！';
@@ -1191,7 +1264,10 @@
       els.cardCountSelect.addEventListener('change', setSetupNote);
       els.startButton.addEventListener('click', startGame);
       els.replayButton.addEventListener('click', startGame);
+      els.portraitBackButton.addEventListener('click', showSetup);
       els.backToSetup.addEventListener('click', showSetup);
+      window.matchMedia('(orientation: portrait)').addEventListener('change', handleOrientationChange);
+      window.addEventListener('resize', handleOrientationChange);
 
       document.addEventListener('touchmove', (event) => {
         if (document.body.classList.contains('screen-locked')) event.preventDefault();
